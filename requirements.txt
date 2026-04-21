@@ -1,0 +1,13 @@
+torch
+torchvision
+torchaudio
+transformers
+accelerate
+omegaconf
+pyyaml
+numpy
+scikit-learn
+pillow
+matplotlib
+opencv-python
+tqdm
