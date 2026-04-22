@@ -160,30 +160,8 @@ The best final detector was obtained using the **no-reasoning** configuration, w
 
 ---
 
-## Repository Structure
 
-```text
-Deepfake-Detector-Submission/
-├── README.md
-├── requirements.txt
-├── train.py
-├── configs/
-├── datasets/
-├── models/
-├── modules/
-├── training/
-├── scripts/
-├── utils/
-├── checkpoints/
-├── figures/
-│   ├── architecture.png
-│   └── qualitative/
-├── results/
-├── report/
-└── logs/
----
-
-## Installation
+### Installation
 
 Clone the repository and install the required dependencies.
 
