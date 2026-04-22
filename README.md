@@ -181,3 +181,198 @@ Deepfake-Detector-Submission/
 ├── results/
 ├── report/
 └── logs/
+---
+
+## Installation
+
+Clone the repository and install the required dependencies.
+
+```bash
+git clone <your-repo-url>
+cd Deepfake-Detector-Submission
+pip install -r requirements.txt
+```
+
+### Environment Notes
+
+- Use the Python version supported by your project dependencies.
+- Install all required packages from `requirements.txt`.
+- Update dataset paths inside the config files before training or evaluation.
+- Keep pretrained checkpoints inside `checkpoints/` if required by your setup.
+
+---
+
+## Datasets
+
+This project was developed using:
+
+- **FaceForensics++ (FF++)**
+- **Celeb-DF-v1**
+- **DFDC**
+- **DeepFakeFace** for auxiliary experiments
+
+Prepare extracted face crops and organize dataset paths through the configuration files in `configs/`.
+
+---
+
+## Training
+
+This project supports both single-source and multi-source training setups.
+
+### 1. Train the main FF++ detector
+
+```bash
+python train.py --config-name train_stage1 stage=1
+```
+
+### 2. Train the multi-source FF++ + Celeb-DF detector
+
+```bash
+python train.py --config-name train_multisource_ffpp_celebdf_stage1 stage=1
+```
+
+### 3. Train the multi-source FF++ + Celeb-DF + DeepFakeFace detector
+
+```bash
+python train.py --config-name train_multisource_ffpp_celebdf_dff_stage1 stage=1
+```
+
+### Training Output
+
+Training typically saves:
+
+- model checkpoints in `checkpoints/`
+- logs in `logs/`
+- result summaries in `results/`
+
+---
+
+## Threshold Search
+
+After training, perform threshold selection on the validation split to find the best decision threshold.
+
+### FF++ + Celeb-DF model
+
+```bash
+python scripts/threshold_search_multisource.py \
+  --config configs/train_multisource_ffpp_celebdf_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_multisource_ffpp_celebdf.pth \
+  --split val \
+  --batch_size 32 \
+  --num_workers 0 \
+  --out_dir results/threshold_search_multisource
+```
+
+### FF++ + Celeb-DF + DFF model
+
+```bash
+python scripts/threshold_search_multisource_dff.py \
+  --config configs/train_multisource_ffpp_celebdf_dff_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_multisource_ffpp_celebdf_dff.pth \
+  --split val \
+  --batch_size 32 \
+  --num_workers 0 \
+  --out_dir results/threshold_search_multisource_dff
+```
+
+### Output
+
+Threshold search stores results in the specified output directory, including the selected threshold and evaluation summary.
+
+---
+
+## Evaluation
+
+Evaluate trained models on cross-dataset benchmarks such as Celeb-DF and DFDC.
+
+### Evaluate on Celeb-DF
+
+```bash
+python scripts/evaluate_celebdf_video.py \
+  --data_root /path/to/Celeb-DF-v1 \
+  --config configs/train_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_no_reasoning.pth \
+  --threshold 0.29 \
+  --batch_size 32 \
+  --num_workers 0 \
+  --agg mean \
+  --out_dir results/celebdf_eval
+```
+
+### Evaluate on DFDC
+
+```bash
+python scripts/evaluate_dfdc_video.py \
+  --frames_root /path/to/DFDC/test/frames \
+  --labels_path /path/to/DFDC/test/metadata.json \
+  --config configs/train_multisource_ffpp_celebdf_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_multisource_ffpp_celebdf.pth \
+  --threshold 0.62 \
+  --batch_size 32 \
+  --num_workers 0 \
+  --agg mean \
+  --out_dir results/dfdc_eval
+```
+
+### Evaluation Output
+
+Evaluation scripts typically report:
+
+- Accuracy
+- Precision
+- Recall
+- F1-score
+- AUC
+- EER
+
+and save prediction results in the selected output directory.
+
+---
+
+## Inference
+
+Run inference on a single image for classification, localization, and explanation generation.
+
+### 1. Detector + weak localization
+
+```bash
+python scripts/inference_localizer_final.py /path/to/image.jpg \
+  --config configs/train_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_no_reasoning.pth \
+  --threshold 0.29 \
+  --output figures/localization/result.png
+```
+
+### 2. Detector + localization + explanation
+
+```bash
+python scripts/inference_explanation_final.py /path/to/image.jpg \
+  --config configs/train_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_no_reasoning.pth \
+  --threshold 0.29 \
+  --llm_model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+  --output results/explanations/result.png
+```
+
+### 3. Generate final report examples
+
+```bash
+python scripts/generate_report_examples.py \
+  --config configs/train_stage1.yaml \
+  --ckpt checkpoints/stage1_final_detector_no_reasoning.pth \
+  --threshold 0.29 \
+  --llm_model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+  --output_root results/report_examples \
+  --images /path/to/fake1.jpg /path/to/fake2.jpg /path/to/real1.jpg /path/to/real2.jpg \
+  --names fake_example_1 fake_example_2 real_example_1 real_example_2
+```
+
+### Inference Output
+
+Inference can produce:
+
+- predicted label (`REAL` / `FAKE`)
+- confidence score
+- fake probability
+- weak localization heatmap
+- short evidence-guided explanation
