@@ -166,7 +166,7 @@ The best final detector was obtained using the **no-reasoning** configuration, w
 Clone the repository and install the required dependencies.
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/ShivaniSingh25/Deepfake-Detector.git
 cd Deepfake-Detector-Submission
 pip install -r requirements.txt
 ```
